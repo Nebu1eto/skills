@@ -1,0 +1,36 @@
+{
+  "metadata": {
+    "name": "Academic/Technical Document Dictionary Template",
+    "version": "1.0.0",
+    "source_language": "",
+    "target_language": "",
+    "document_type": "academic",
+    "notes": "For academic papers, technical documents, reports, etc."
+  },
+  "proper_nouns": {
+    "_comment": "Names, institutions, places that need consistent translation",
+    "names": {
+    },
+    "institutions": {
+    },
+    "places": {
+    }
+  },
+  "domain_terms": {
+    "_comment": "Document-specific technical terms only. Do NOT add common academic/technical words - let the translator handle them naturally."
+  },
+  "preserve_original": {
+    "_comment": "Terms to keep in original language (with optional translation in parentheses on first occurrence)",
+    "terms": [],
+    "abbreviations": []
+  },
+  "citation_style": {
+    "_comment": "Citation format preferences",
+    "author_name_format": "original",
+    "preserve_reference_titles": true
+  },
+  "style_notes": {
+    "_comment": "Translator preserves the original document's formality and tone. Add notes only if specific adjustments are needed.",
+    "notes": ""
+  }
+}

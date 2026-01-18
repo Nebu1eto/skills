@@ -1,0 +1,32 @@
+{
+  "metadata": {
+    "source_language": "",
+    "target_language": "",
+    "document_title": "",
+    "description": "Custom dictionary for consistent translation of proper nouns and domain-specific terms",
+    "version": "1.0.0"
+  },
+  "proper_nouns": {
+    "_comment": "Names of people, places, organizations, brands that need consistent translation. Do NOT add common words.",
+    "names": {
+    },
+    "places": {
+    },
+    "organizations": {
+    }
+  },
+  "domain_terms": {
+    "_comment": "Document-specific terms requiring consistent translation. Do NOT add common words - let the translator handle them naturally based on context."
+  },
+  "preserve_original": {
+    "_comment": "Terms to keep in original form without translation",
+    "terms": []
+  },
+  "abbreviations": {
+    "_comment": "Abbreviation expansions for first occurrence"
+  },
+  "style_notes": {
+    "_comment": "Optional notes about translation style, formality level, etc.",
+    "notes": ""
+  }
+}

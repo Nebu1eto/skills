@@ -6,3 +6,4 @@
 > 다음 Agent Skills는 Claude Code 에서의 사용을 전제로 만들어졌습니다.
 
 - [`epub-translator`](./epub-translator/README.ko-KR.md)
+- [`pdf-translator`](./pdf-translator/README.ko-KR.md)

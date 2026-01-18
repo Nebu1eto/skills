@@ -8,3 +8,4 @@ A collection of [Agent Skills](https://agentskills.io/) I created for my own nee
 > These Agent Skills are designed to be used with Claude Code.
 
 - [`epub-translator`](./epub-translator/README.md)
+- [`pdf-translator`](./pdf-translator/README.md)
