@@ -38,13 +38,13 @@ This script:
 
 ```bash
 # Translate Japanese PDF to Korean
-/pdf path/to/document.pdf --to ko
+/pdf-translator path/to/document.pdf --to ko
 
 # Auto-detect source language
-/pdf document.pdf --to en
+/pdf-translator document.pdf --to en
 
 # Academic mode (includes original terms)
-/pdf paper.pdf --to ko --academic
+/pdf-translator paper.pdf --to ko --academic
 ```
 
 ### Custom Dictionary (Optional)
@@ -75,7 +75,7 @@ Do NOT add common words - let the translator handle them naturally.
 ```
 
 ```bash
-/pdf document.pdf --to ko --dict my-dictionary.json
+/pdf-translator document.pdf --to ko --dict my-dictionary.json
 ```
 
 See [assets/template.json](assets/template.json) for general documents or [assets/template_academic.json](assets/template_academic.json) for academic papers.

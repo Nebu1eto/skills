@@ -38,13 +38,13 @@ bash scripts/setup_env.sh
 
 ```bash
 # 일본어 PDF를 한국어로 번역
-/pdf path/to/document.pdf --to ko
+/pdf-translator path/to/document.pdf --to ko
 
 # 소스 언어 자동 감지
-/pdf document.pdf --to en
+/pdf-translator document.pdf --to en
 
 # 학술 모드 (원문 용어 병기)
-/pdf paper.pdf --to ko --academic
+/pdf-translator paper.pdf --to ko --academic
 ```
 
 ### 사용자 정의 사전 (선택 사항)
@@ -75,7 +75,7 @@ bash scripts/setup_env.sh
 ```
 
 ```bash
-/pdf document.pdf --to ko --dict my-dictionary.json
+/pdf-translator document.pdf --to ko --dict my-dictionary.json
 ```
 
 일반 문서는 [assets/template.json](assets/template.json), 학술 문서는 [assets/template_academic.json](assets/template_academic.json)을 참조하세요.
