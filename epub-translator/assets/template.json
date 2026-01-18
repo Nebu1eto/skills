@@ -1,0 +1,25 @@
+{
+  "metadata": {
+    "source_language": "",
+    "target_language": "",
+    "description": "Custom dictionary for consistent translation of proper nouns and domain-specific terms",
+    "version": "1.0.0",
+    "document_title": "",
+    "notes": ""
+  },
+  "proper_nouns": {
+    "_comment": "Names of people, places, organizations, brands, etc. that need consistent translation",
+    "names": {
+    },
+    "places": {
+    },
+    "organizations": {
+    }
+  },
+  "domain_terms": {
+    "_comment": "Document-specific terms requiring consistent translation (e.g., proprietary technology, coined terms). Do NOT add common words here."
+  },
+  "style_notes": {
+    "_comment": "Optional notes about translation style, formality level, etc."
+  }
+}

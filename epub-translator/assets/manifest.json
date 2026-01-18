@@ -1,0 +1,55 @@
+{
+  "project": {
+    "source_language": "ja",
+    "target_language": "ko",
+    "work_dir": "/tmp/epub_translate_example",
+    "created_at": "2024-01-01T00:00:00Z"
+  },
+  "dictionaries": {
+    "characters": {},
+    "terms": {}
+  },
+  "volumes": [
+    {
+      "volume_id": "example_volume",
+      "source_epub": "/path/to/source.epub",
+      "title": "Example Book Title",
+      "work_dir": "/tmp/epub_translate_example/extracted/example_volume",
+      "tasks": [
+        {
+          "task_id": "example_volume_chapter1",
+          "volume_id": "example_volume",
+          "task_type": "single",
+          "input_path": "/tmp/epub_translate_example/extracted/example_volume/OEBPS/chapter1.xhtml",
+          "output_path": "/tmp/epub_translate_example/translated/example_volume/OEBPS/chapter1.xhtml",
+          "status_path": "/tmp/epub_translate_example/status/example_volume_chapter1.status",
+          "size_kb": 10.5,
+          "parent_file": null,
+          "section_index": null,
+          "total_sections": null
+        },
+        {
+          "task_id": "example_volume_chapter2_p1",
+          "volume_id": "example_volume",
+          "task_type": "section",
+          "input_path": "/tmp/epub_translate_example/sections/example_volume/chapter2_part1.xhtml",
+          "output_path": "/tmp/epub_translate_example/sections/example_volume/translated_chapter2_part1.xhtml",
+          "status_path": "/tmp/epub_translate_example/status/example_volume_chapter2_p1.status",
+          "size_kb": 15.2,
+          "parent_file": "OEBPS/chapter2.xhtml",
+          "section_index": 1,
+          "total_sections": 4
+        }
+      ]
+    }
+  ],
+  "statistics": {
+    "total_volumes": 1,
+    "total_tasks": 2,
+    "single_file_tasks": 1,
+    "section_tasks": 1,
+    "completed": 0,
+    "in_progress": 0,
+    "failed": 0
+  }
+}

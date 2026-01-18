@@ -1,0 +1,20 @@
+{
+  "metadata": {
+    "source_language": "en",
+    "target_language": "ko",
+    "description": "Template for English to Korean translation. Add only proper nouns and document-specific terms.",
+    "version": "1.0.0"
+  },
+  "proper_nouns": {
+    "_comment": "Add names, places, organizations that need consistent translation",
+    "names": {
+    },
+    "places": {
+    },
+    "organizations": {
+    }
+  },
+  "domain_terms": {
+    "_comment": "Add document-specific terms only. Do NOT add common words - let the translator handle them naturally based on context."
+  }
+}
