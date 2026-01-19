@@ -294,19 +294,3 @@ May be caused by angle brackets. `<Korean text>` needs to be converted to `〈Ko
 /epub-translator "/books/large.epub" --split-threshold 20 --split-parts 6
 ```
 
-## License
-
-MIT License
-
-## Contributing
-
-Bug reports and pull requests are welcome!
-
-- Bug Reports: GitHub Issues
-- Feature Requests: GitHub Discussions
-- Code Contributions: Pull Requests
-
-## Related Links
-
-- [Agent Skills Documentation](https://agentskills.io)
-- [Claude Code Documentation](https://docs.anthropic.com/claude-code)

@@ -35,6 +35,3 @@ bash scripts/setup_env.sh
 PDF → extract_to_markdown.py → source.md → 분할 (대용량) → 번역 → generate_pdf.py → 출력
 ```
 
-## 라이선스
-
-MIT

@@ -35,6 +35,3 @@ bash scripts/setup_env.sh
 PDF → extract_to_markdown.py → source.md → split (if large) → translate → generate_pdf.py → output
 ```
 
-## License
-
-MIT

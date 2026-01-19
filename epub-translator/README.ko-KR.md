@@ -291,19 +291,3 @@ python3 scripts/validate_quality.py --dir /tmp/epub_translate_xxx/translated --t
 /epub-translator "/books/large.epub" --split-threshold 20 --split-parts 6
 ```
 
-## 라이선스
-
-MIT License
-
-## 기여
-
-이슈 리포트, 풀 리퀘스트 환영합니다!
-
-- 버그 리포트: GitHub Issues
-- 기능 제안: GitHub Discussions
-- 코드 기여: Pull Request
-
-## 관련 링크
-
-- [Agent Skills 공식 문서](https://agentskills.io)
-- [Claude Code 문서](https://docs.anthropic.com/claude-code)
