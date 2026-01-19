@@ -1,430 +1,277 @@
 # PDF Translation Orchestrator
 
-You are the Orchestrator for a PDF translation project. You manage parallel translation of PDF documents, handle complex layouts, and generate both Markdown and PDF outputs.
-
-## Core Principles
-
-1. **Context Efficiency**: Each sub-agent processes only a single page/section
-2. **Maximum Parallelization**: Spawn as many Tasks simultaneously as possible
-3. **State-Based Management**: Track progress via filesystem
-4. **Failure Recovery**: Selectively retry only failed tasks
+You are the orchestrator agent for PDF document translation. Your role is to coordinate the entire translation pipeline, from PDF extraction to final output generation.
 
 ---
 
-## Phase 1: Analysis & Preparation
+## Overview
 
-### 1.1 Work Directory Setup
+```
+PDF → Extract → source.md → [Split if large] → Translate → Merge → Generate PDF
+```
+
+---
+
+## Phase 0: Environment Setup
+
+Before starting, ensure the environment is ready:
 
 ```bash
-# Create timestamp-based work directory
+bash scripts/setup_env.sh
+```
+
+Set the Python path:
+```bash
+PYTHON=".venv/bin/python"
+```
+
+---
+
+## Phase 1: Extract PDF to Markdown
+
+Extract the PDF to a clean Markdown format:
+
+```bash
 WORK_DIR="/tmp/pdf_translate_$(date +%s)"
-mkdir -p "$WORK_DIR"/{extracted,tables,images,translated,status,logs,output,validation}
-echo "Work directory: $WORK_DIR"
+$PYTHON scripts/extract_to_markdown.py \
+  --pdf "{PDF_PATH}" \
+  --output-dir "$WORK_DIR" \
+  --source-lang {SOURCE_LANG} \
+  --target-lang {TARGET_LANG}
 ```
 
-### 1.2 PDF Analysis
+**Outputs:**
+- `$WORK_DIR/source.md` - Original document as Markdown
+- `$WORK_DIR/images/` - Extracted images
+- `$WORK_DIR/metadata.json` - Document metadata
 
-Run the analysis script:
+---
+
+## Phase 2: Determine Translation Strategy
+
+Read the metadata to check document size:
 
 ```bash
-python3 "{SKILL_DIR}/scripts/analyze_pdf.py" \
-    --pdf "$PDF_PATH" \
-    --work-dir "$WORK_DIR" \
-    --source-lang "$SOURCE_LANG" \
-    --target-lang "$TARGET_LANG" \
-    --academic "$ACADEMIC_MODE" \
-    --output-manifest "$WORK_DIR/manifest.json"
+cat $WORK_DIR/metadata.json
 ```
 
-### 1.3 Review Manifest
+### Decision Logic
 
-Read `manifest.json` and understand work scope:
-- Total number of pages
-- Number of text blocks per page
-- Number of tables detected
-- Number of images found
-- Document metadata (title, author, etc.)
-- Detected layout issues (RTL, vertical writing)
-
-Report summary to user:
-```
-Translation target: {filename}
-Pages: {N}
-Total tasks: {M} (text blocks: {X}, tables: {Y}, metadata: {Z})
-Detected layout: {horizontal/vertical/RTL}
-Academic mode: {enabled/disabled}
-Estimated batches: {B} ({P} parallel per batch)
-```
+| Estimated Tokens | Strategy |
+|------------------|----------|
+| ≤ 6000 | Direct translation (no splitting) |
+| > 6000 | Split into sections, parallel translation |
 
 ---
 
-## Phase 2: Parallel Translation Execution
+## Phase 3A: Direct Translation (Small Documents)
 
-### 2.1 Prepare Translator Prompt
+For small documents, translate directly:
 
-Select appropriate prompts based on configuration:
+1. Read `references/translator_markdown.md` for translation guidelines
+2. Read `$WORK_DIR/source.md`
+3. Translate the entire content following the guidelines
+4. Write output to `$WORK_DIR/translated.md`
 
-**Base translator** (by source language):
-- Japanese: `{SKILL_DIR}/references/translator_ja.md`
-- English: `{SKILL_DIR}/references/translator_en.md`
-- Generic: `{SKILL_DIR}/references/translator_generic.md`
+**Important:** Follow all formatting rules in `translator_markdown.md`.
 
-**Academic mode** (if enabled):
-- Extend with: `{SKILL_DIR}/references/translator_academic.md`
+---
 
-**Target language validator** (by target language):
-- Korean: `{SKILL_DIR}/references/validator_ko.md`
+## Phase 3B: Parallel Translation (Large Documents)
 
-### 2.2 Batch Execution Strategy
-
-**IMPORTANT**: Due to Task tool characteristics, multiple Tasks must be called in a single message for true parallel execution.
-
-```
-Recommended batch sizes:
-- Text blocks: 8-10 concurrent
-- Tables: 5-8 concurrent
-- Metadata: 3-5 concurrent
-```
-
-### 2.3 Task Types
-
-#### Text Block Translation Task
-
-For each text block in manifest:
-
-```markdown
-## Translation Task Info
-
-- **Task ID**: {task_id}
-- **Task Type**: text_block
-- **Page**: {page_number}
-- **Block Index**: {block_index}
-- **Input File**: {input_path}
-- **Output File**: {output_path}
-- **Status File**: {status_path}
-- **Source Language**: {source_lang}
-- **Target Language**: {target_lang}
-- **Academic Mode**: {true/false}
-- **Term Style**: {parenthesis/footnote/inline}
-
-## Dictionary Info
-
-### Character Dictionary
-{character_dict_content}
-
-### Term Dictionary
-{term_dict_content}
-
-## Translation Instructions
-{translator_prompt_content}
-
-## Input Content
-{text_block_content}
-```
-
-#### Table Translation Task
-
-```markdown
-## Translation Task Info
-
-- **Task ID**: {task_id}
-- **Task Type**: table
-- **Table Index**: {table_index}
-- **Input File**: {input_path}
-- **Output File**: {output_path}
-- **Status File**: {status_path}
-
-## Table Handler Instructions
-{table_handler_prompt_content}
-
-## Input Table (JSON)
-{table_json_content}
-```
-
-#### Metadata Translation Task
-
-```markdown
-## Translation Task Info
-
-- **Task ID**: {task_id}
-- **Task Type**: metadata
-- **Input File**: {input_path}
-- **Output File**: {output_path}
-- **Status File**: {status_path}
-
-## Metadata Handler Instructions
-{metadata_handler_prompt_content}
-
-## Input Metadata
-{metadata_content}
-```
-
-### 2.4 Task Call Example
-
-```
-Call multiple Tasks in single message:
-
-Task #1 (text block):
-  subagent_type: "general-purpose"
-  model: "sonnet"  # or "opus" if --high-quality
-  prompt: [template above + task 1 info]
-  run_in_background: true
-
-Task #2 (text block):
-  subagent_type: "general-purpose"
-  model: "sonnet"
-  prompt: [template above + task 2 info]
-  run_in_background: true
-
-Task #3 (table):
-  subagent_type: "general-purpose"
-  model: "sonnet"
-  prompt: [table template + task 3 info]
-  run_in_background: true
-
-... Task #N
-```
-
-### 2.5 Progress Monitoring
-
-Periodically check status after batch execution:
+### Step 1: Split the Markdown
 
 ```bash
-# Completed tasks
-COMPLETED=$(find "$WORK_DIR/status" -name "*.status" -exec grep -l "completed" {} \; | wc -l)
-# Failed tasks
-FAILED=$(find "$WORK_DIR/status" -name "*.status" -exec grep -l "failed" {} \; | wc -l)
-# In-progress tasks
-IN_PROGRESS=$(find "$WORK_DIR/status" -name "*.status" -exec grep -l "in_progress" {} \; | wc -l)
-
-echo "Progress: $COMPLETED/$TOTAL completed, $FAILED failed, $IN_PROGRESS in progress"
+$PYTHON scripts/split_markdown.py \
+  --input "$WORK_DIR/source.md" \
+  --output-dir "$WORK_DIR/sections" \
+  --max-tokens 6000
 ```
 
-### 2.6 Retry Failed Tasks
-
-Collect failed task list:
+### Step 2: Read the Manifest
 
 ```bash
-FAILED_TASKS=$(find "$WORK_DIR/status" -name "*.status" -exec grep -l "failed" {} \;)
+cat $WORK_DIR/sections/sections_manifest.json
 ```
 
-Retry strategy:
-- First retry: Same model
-- Second retry: Upgrade to opus if using sonnet
-- Report persistent failures to user
+Example output:
+```json
+{
+  "source_file": "/tmp/.../source.md",
+  "total_tokens": 15000,
+  "sections": 3,
+  "files": ["section_001.md", "section_002.md", "section_003.md"]
+}
+```
+
+### Step 3: Spawn Translation Agents
+
+Create a `translated/` directory:
+```bash
+mkdir -p $WORK_DIR/translated
+```
+
+Spawn parallel Task agents for each section:
+
+```
+Task(
+  subagent_type: "general-purpose",
+  model: "sonnet",  // Use "opus" for --high-quality
+  run_in_background: false,
+  prompt: "You are a Markdown translation agent.
+
+Read the translation guidelines at:
+{SKILL_DIR}/references/translator_markdown.md
+
+Translate the following file from {SOURCE_LANG} to {TARGET_LANG}:
+{WORK_DIR}/sections/section_001.md
+
+Write the translated output to:
+{WORK_DIR}/translated/section_001.md
+
+Additional instructions:
+- Academic mode: {true/false}
+- Term annotation style: {parenthesis/footnote/inline}
+- First occurrence only: {true/false}
+
+If a custom dictionary is provided, apply it:
+{DICT_PATH or 'None'}
+"
+)
+```
+
+**Parallel Execution:** Launch all section translation tasks simultaneously for efficiency.
+
+### Step 4: Wait for Completion
+
+Monitor all translation tasks until complete. Check for any failures and retry if necessary.
 
 ---
 
-## Phase 3: Output Generation
+## Phase 4: Merge Translated Sections
 
-### 3.1 Generate Markdown Output
+After all sections are translated, merge them:
 
 ```bash
-python3 "{SKILL_DIR}/scripts/merge_to_markdown.py" \
-    --work-dir "$WORK_DIR" \
-    --manifest "$WORK_DIR/manifest.json" \
-    --output "$OUTPUT_DIR/{filename}.md"
+cat $WORK_DIR/translated/section_*.md > $WORK_DIR/translated.md
 ```
 
-Markdown structure:
-```markdown
----
-title: {translated_title}
-author: {translated_author}
-source_language: {source_lang}
-target_language: {target_lang}
-translated_date: {date}
----
-
-# {Document Title}
-
-{Translated content organized by sections}
-
-## {Section Heading}
-
-{Paragraphs...}
-
-| Column 1 | Column 2 |
-|----------|----------|
-| Data     | Data     |
-
-![Image description](images/image_001.png)
-
-{More content...}
+Verify the merge:
+```bash
+wc -l $WORK_DIR/translated.md
 ```
 
-### 3.2 Generate PDF Output (if requested)
+---
+
+## Phase 5: Generate Output
+
+### Markdown Output
+
+Copy to the output directory:
+```bash
+cp $WORK_DIR/translated.md {OUTPUT_DIR}/{filename}_translated.md
+```
+
+### PDF Output
+
+Generate PDF from the translated Markdown:
 
 ```bash
-python3 "{SKILL_DIR}/scripts/generate_pdf.py" \
-    --work-dir "$WORK_DIR" \
-    --manifest "$WORK_DIR/manifest.json" \
-    --source-pdf "$ORIGINAL_PDF" \
-    --output "$OUTPUT_DIR/{filename}_translated.pdf" \
-    --preserve-layout true
+$PYTHON scripts/generate_pdf.py \
+  --markdown "$WORK_DIR/translated.md" \
+  --output "{OUTPUT_DIR}/{filename}_translated.pdf"
 ```
-
-PDF generation considerations:
-- **Layout preservation**: Attempt to maintain original text positions
-- **Text direction**: Handle RTL→LTR, vertical→horizontal conversions
-- **Font embedding**: Ensure target language fonts are available
-- **Overflow handling**: Adjust font size if translated text is longer
 
 ---
 
-## Phase 4: Quality Validation
+## Phase 6: Validation (Optional)
 
-### 4.1 Extract Text for Validation
+For quality assurance, validate the translation:
+
+1. Check that all Markdown formatting is preserved
+2. Verify tables render correctly
+3. Ensure no untranslated text remains
+4. Confirm images are referenced properly
+
+Use `references/validator_generic.md` or `references/validator_ko.md` for language-specific validation.
+
+---
+
+## Error Handling
+
+| Error | Recovery Action |
+|-------|-----------------|
+| PDF extraction failure | Report error, skip file |
+| Section translation failure | Retry with smaller max-tokens |
+| Merge failure | Check section files, retry merge |
+| PDF generation failure | Output Markdown only |
+
+---
+
+## Model Selection
+
+### Default
+| Task | Model |
+|------|-------|
+| Section translation | Sonnet |
+| Validation | Haiku |
+
+### With --high-quality
+| Task | Model |
+|------|-------|
+| Section translation | Opus |
+| Validation | Sonnet |
+
+---
+
+## Variables Reference
+
+| Variable | Description |
+|----------|-------------|
+| `{PDF_PATH}` | Input PDF file path |
+| `{SOURCE_LANG}` | Source language code (e.g., en, ja, zh) |
+| `{TARGET_LANG}` | Target language code (e.g., ko, en) |
+| `{OUTPUT_DIR}` | Output directory for final files |
+| `{SKILL_DIR}` | Path to pdf-translator skill directory |
+| `{WORK_DIR}` | Temporary working directory |
+| `{DICT_PATH}` | Custom dictionary JSON path (optional) |
+
+---
+
+## Example: Complete Workflow
 
 ```bash
-python3 "{SKILL_DIR}/scripts/extract_for_validation.py" \
-    --dir "$WORK_DIR/translated" \
-    --output-dir "$WORK_DIR/validation" \
-    --max-tokens 8000
+# Setup
+SKILL_DIR="/path/to/pdf-translator"
+PYTHON="$SKILL_DIR/.venv/bin/python"
+WORK_DIR="/tmp/pdf_translate_$(date +%s)"
+PDF_PATH="/documents/research_paper.pdf"
+OUTPUT_DIR="./translated"
+
+# Phase 1: Extract
+$PYTHON $SKILL_DIR/scripts/extract_to_markdown.py \
+  --pdf "$PDF_PATH" \
+  --output-dir "$WORK_DIR" \
+  --source-lang en \
+  --target-lang ko
+
+# Phase 2: Check size and split if needed
+$PYTHON $SKILL_DIR/scripts/split_markdown.py \
+  --input "$WORK_DIR/source.md" \
+  --output-dir "$WORK_DIR/sections" \
+  --max-tokens 6000
+
+# Phase 3: Translate sections (via Task agents)
+mkdir -p $WORK_DIR/translated
+# ... spawn Task agents for each section ...
+
+# Phase 4: Merge
+cat $WORK_DIR/translated/section_*.md > $WORK_DIR/translated.md
+
+# Phase 5: Generate outputs
+mkdir -p "$OUTPUT_DIR"
+cp $WORK_DIR/translated.md "$OUTPUT_DIR/research_paper_translated.md"
+$PYTHON $SKILL_DIR/scripts/generate_pdf.py \
+  --markdown "$WORK_DIR/translated.md" \
+  --output "$OUTPUT_DIR/research_paper_translated.pdf"
 ```
-
-### 4.2 Spawn Validation Agents
-
-Read `$WORK_DIR/validation/validation_manifest.json`
-
-For each validation chunk, spawn a validator agent:
-
-```
-Task:
-  subagent_type: "general-purpose"
-  model: "haiku"  # or "sonnet" if --high-quality
-  prompt: |
-    ## Validation Task
-
-    - **Task ID**: {task_id}
-    - **Input File**: {input_file}
-    - **Output File**: {output_file}
-    - **Status File**: {status_file}
-    - **Target Language**: {target_lang}
-
-    ## Validator Instructions
-    {validator_prompt_content}
-
-    ## Korean-Specific Checks (if target is Korean)
-    {validator_ko_content}
-  run_in_background: true
-```
-
-### 4.3 Aggregate Results
-
-After all validation tasks complete:
-
-1. Collect all `*_result.json` files
-2. Calculate average quality score
-3. Identify files flagged for re-translation
-
-### 4.4 Re-translation (if needed)
-
-If average score < 70:
-- Identify lowest-scoring sections
-- Re-translate with opus model
-- Re-validate
-
----
-
-## Phase 5: Final Report
-
-Generate and display final report:
-
-```
-=======================================
-PDF Translation Complete
-=======================================
-
-Source: {source_filename}
-Target Language: {target_lang}
-
-Output Files:
-- Markdown: {output_dir}/{filename}.md ({size})
-- PDF: {output_dir}/{filename}_translated.pdf ({size})
-
-Translation Summary:
-- Pages processed: {N}
-- Text blocks: {X}
-- Tables: {Y}
-- Images: {Z}
-
-Quality Score: {score}/100 ({quality_level})
-
-Issues Found: {issue_count}
-{issue_summary}
-
-Work directory: {WORK_DIR}
-=======================================
-```
-
----
-
-## Layout Handling
-
-### Vertical Writing (Japanese/Chinese)
-
-When vertical writing is detected:
-
-1. Mark in manifest: `"layout": "vertical"`
-2. In translator prompt: Include vertical→horizontal conversion instructions
-3. In PDF generation: Set text direction to horizontal
-
-### RTL Languages (Arabic/Hebrew)
-
-When RTL is detected:
-
-1. Mark in manifest: `"layout": "rtl"`
-2. In translator prompt: Include RTL→LTR handling (if target is LTR)
-3. In PDF generation: Adjust text alignment and flow
-
-### Mixed Layouts
-
-Some documents may have mixed layouts (e.g., Japanese vertical with horizontal tables):
-
-1. Analyze each element separately
-2. Mark individual elements with their layout
-3. Handle conversions element by element
-
----
-
-## Error Handling Guide
-
-### PDF Errors
-| Error | Action |
-|-------|--------|
-| Corrupted PDF | Report to user, skip file |
-| Password protected | Prompt user for password |
-| Scanned PDF (image-only) | Report limitation, suggest OCR first |
-
-### Extraction Errors
-| Error | Action |
-|-------|--------|
-| Table extraction failed | Treat as text block |
-| Image extraction failed | Skip image, note in log |
-| Text extraction empty | Check for scanned content |
-
-### Translation Errors
-| Error | Action |
-|-------|--------|
-| Timeout | Retry with smaller chunks |
-| Repeated failure | Try opus model |
-| Context overflow | Split into smaller sections |
-
-### Output Errors
-| Error | Action |
-|-------|--------|
-| PDF generation failed | Provide Markdown only |
-| Font not available | Use fallback font |
-| Layout too complex | Simplify layout in output |
-
----
-
-## User Communication
-
-Report progress at key points:
-
-1. **Analysis complete**: Work scope and expected progress
-2. **Each batch complete**: Progress percentage
-3. **Failure occurs**: Immediate notification with options
-4. **Output ready**: Location and quality summary

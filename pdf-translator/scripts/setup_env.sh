@@ -7,13 +7,43 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 VENV_DIR="${PROJECT_DIR}/.venv"
-REQUIREMENTS="pymupdf pdfplumber reportlab"
+REQUIREMENTS="pymupdf pdfplumber weasyprint"
 
 echo "Setting up PDF translation environment..."
 
+# Install pandoc if not available
+if ! command -v pandoc &> /dev/null; then
+    echo "Installing pandoc..."
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        if command -v brew &> /dev/null; then
+            brew install pandoc
+        else
+            echo "Error: Homebrew not found. Install pandoc manually: https://pandoc.org/installing.html"
+            exit 1
+        fi
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        if command -v apt-get &> /dev/null; then
+            sudo apt-get update && sudo apt-get install -y pandoc
+        elif command -v dnf &> /dev/null; then
+            sudo dnf install -y pandoc
+        elif command -v pacman &> /dev/null; then
+            sudo pacman -S --noconfirm pandoc
+        else
+            echo "Error: No supported package manager found. Install pandoc manually."
+            exit 1
+        fi
+    else
+        echo "Error: Unsupported OS. Install pandoc manually: https://pandoc.org/installing.html"
+        exit 1
+    fi
+    echo "pandoc installed: $(pandoc --version | head -1)"
+else
+    echo "pandoc found: $(pandoc --version | head -1)"
+fi
+
 # Check if virtual environment already exists and has packages
 if [ -d "$VENV_DIR" ] && [ -f "$VENV_DIR/bin/python" ]; then
-    if "$VENV_DIR/bin/python" -c "import fitz, pdfplumber, reportlab" 2>/dev/null; then
+    if "$VENV_DIR/bin/python" -c "import fitz, pdfplumber, weasyprint" 2>/dev/null; then
         echo "Environment already set up at $VENV_DIR"
         echo "Python: $VENV_DIR/bin/python"
         exit 0
@@ -65,7 +95,7 @@ fi
 # Verify installation
 echo ""
 echo "Verifying installation..."
-if "$VENV_DIR/bin/python" -c "import fitz, pdfplumber, reportlab; print('All packages installed successfully')" 2>/dev/null; then
+if "$VENV_DIR/bin/python" -c "import fitz, pdfplumber, weasyprint; print('All packages installed successfully')" 2>/dev/null; then
     echo ""
     echo "Environment setup complete!"
     echo "Virtual environment: $VENV_DIR"

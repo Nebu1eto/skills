@@ -1,7 +1,8 @@
 ---
 name: pdf-translator
 description: Translates PDF documents to any target language with layout preservation. Supports academic papers, books, manuals, and general documents. Extracts text, tables, and metadata, translates with parallel processing, and outputs both Markdown and PDF formats. Handles vertical writing (Japanese), RTL languages (Arabic, Hebrew), and academic terminology with original language annotations. Use when translating PDF files, research papers, or technical documents.
-compatibility: Requires Python 3.8+. Dependencies auto-installed via setup script (uses uv if available, otherwise pip).
+compatibility: Requires Python 3.8+ and pandoc. Run `bash scripts/setup_env.sh` to install all dependencies (pandoc via system package manager, Python packages via venv).
+allowed-tools: Read Edit Glob Grep Bash(python:*) Bash(bash:*) Bash(mkdir:*) Bash(ls:*) Bash(grep:*) Bash(cat:*) Bash(wc:*) Bash(head:*) Bash(tail:*) Bash(cp:*)
 metadata:
   author: Haze Lee
   version: "1.0.0"
@@ -78,22 +79,22 @@ Use this skill when:
 ## Architecture
 
 ```mermaid
-flowchart TB
-    subgraph ORCHESTRATOR["ORCHESTRATOR"]
-        O1["Analyzes PDFs and creates task manifest"]
-        O2["Extracts text blocks, tables, images, metadata"]
-        O3["Spawns parallel translator agents"]
-        O4["Monitors progress via status files"]
-        O5["Generates Markdown and/or PDF output"]
-        O6["Validates translation quality"]
-    end
-
-    ORCHESTRATOR --> PT["Page/Section Translator<br/>(Sonnet)"]
-    ORCHESTRATOR --> TH["Table Handler<br/>(Sonnet)"]
-    ORCHESTRATOR --> MT["Metadata Translator<br/>(Haiku)"]
+flowchart LR
+    PDF[PDF] --> Extract[extract_to_markdown.py]
+    Extract --> Source[source.md + images/]
+    Source --> Split[split_markdown.py]
+    Split --> Sections[sections/]
+    Sections --> Translate[Translator Agents]
+    Translate --> Merged[translated.md]
+    Merged --> GenPDF[generate_pdf.py]
+    GenPDF --> Output[translated.pdf]
 ```
 
-**Key Constraint**: Sub-agents do NOT have Task tool access. They use only Read, Edit, Write, and Bash.
+**Key Features**:
+- Full document context preserved during translation
+- Clean Markdown intermediate format (human-readable, editable)
+- Section-based parallel translation for large documents
+- pandoc + weasyprint for high-quality PDF output
 
 ---
 
@@ -101,91 +102,97 @@ flowchart TB
 
 ### Phase 0: Environment Setup
 
-**Run once before first use.** The setup script automatically detects and uses `uv` if available, otherwise falls back to `python venv + pip`.
-
 ```bash
 bash scripts/setup_env.sh
 ```
 
-This creates a virtual environment at `.venv/` with all required dependencies (pymupdf, pdfplumber, reportlab).
+This installs pandoc and creates `.venv/` with Python dependencies (pymupdf, pdfplumber, weasyprint).
 
-After setup, use the virtual environment's Python:
 ```bash
 PYTHON=".venv/bin/python"
 ```
 
-### Phase 1: Analysis
+### Phase 1: Extract PDF to Markdown
 
-1. Create work directory:
-   ```bash
-   WORK_DIR="/tmp/pdf_translate_$(date +%s)"
-   mkdir -p "$WORK_DIR"/{extracted,tables,images,translated,status,logs,output}
-   ```
+```bash
+WORK_DIR="/tmp/pdf_translate_$(date +%s)"
+$PYTHON scripts/extract_to_markdown.py \
+  --pdf "{PDF_PATH}" \
+  --output-dir "$WORK_DIR" \
+  --source-lang en \
+  --target-lang ko
+```
 
-2. Analyze PDF:
-   ```bash
-   $PYTHON scripts/analyze_pdf.py \
-     --pdf "{PDF_PATH}" \
-     --work-dir "$WORK_DIR" \
-     --source-lang "{SOURCE_LANG}" \
-     --target-lang "{TARGET_LANG}" \
-     --academic {true/false}
-   ```
+**Output:**
+- `$WORK_DIR/source.md` - Original Markdown (preserves structure)
+- `$WORK_DIR/images/` - Extracted images
+- `$WORK_DIR/metadata.json` - Document metadata
 
-3. Review `$WORK_DIR/manifest.json` for task count and structure.
+### Phase 2: Split Markdown (if needed)
 
-### Phase 2: Translation
+For large documents (>6000 tokens), split into sections:
 
-1. Select translator prompt from [references/](references/):
-   - Japanese source: `translator_ja.md`
-   - English source: `translator_en.md`
-   - Academic mode: `translator_academic.md` (extends base)
-   - Other: `translator_generic.md`
+```bash
+$PYTHON scripts/split_markdown.py \
+  --input "$WORK_DIR/source.md" \
+  --output-dir "$WORK_DIR/sections" \
+  --max-tokens 6000
+```
 
-2. Spawn Task agents with:
-   - `run_in_background: true`
-   - `model: "sonnet"` (or `"opus"` if `--high-quality`)
-   - **CRITICAL**: Multiple Tasks in single message for true parallelism
+**Output:**
+- `$WORK_DIR/sections/section_001.md`
+- `$WORK_DIR/sections/section_002.md`
+- `$WORK_DIR/sections/sections_manifest.json`
 
-3. Monitor progress:
-   ```bash
-   find "$WORK_DIR/status" -name "*.status" -exec grep -l "completed" {} \; | wc -l
-   ```
+### Phase 3: Translation
 
-4. Retry failed tasks (max 2 attempts)
+Translate each section using the Markdown translator guide (`references/translator_markdown.md`).
 
-### Phase 3: Output Generation
+#### Option A: Direct Translation (Small documents)
 
-1. Generate Markdown:
-   ```bash
-   $PYTHON scripts/merge_to_markdown.py \
-     --work-dir "$WORK_DIR" \
-     --manifest manifest.json \
-     --output "$OUTPUT_DIR/{filename}.md"
-   ```
+The orchestrator translates the Markdown directly:
+1. Read `source.md` (or each section)
+2. Translate following `translator_markdown.md` guidelines
+3. Write to `translated.md`
 
-2. Generate PDF (if requested):
-   ```bash
-   $PYTHON scripts/generate_pdf.py \
-     --work-dir "$WORK_DIR" \
-     --manifest manifest.json \
-     --source-pdf "{ORIGINAL_PDF}" \
-     --output "$OUTPUT_DIR/{filename}_translated.pdf"
-   ```
+#### Option B: Parallel Translation (Large documents)
 
-### Phase 4: Quality Validation
+Spawn Task agents for each section:
 
-1. Extract text for validation:
-   ```bash
-   $PYTHON scripts/extract_for_validation.py \
-     --dir "$WORK_DIR/translated" \
-     --output-dir "$WORK_DIR/validation" \
-     --max-tokens 8000
-   ```
+```
+Task(
+  subagent_type: "general-purpose",
+  model: "sonnet",  // or "opus" for --high-quality
+  run_in_background: false,
+  prompt: "Read references/translator_markdown.md for guidelines.
+           Translate $WORK_DIR/sections/section_001.md from English to Korean.
+           Write output to $WORK_DIR/translated/section_001.md"
+)
+```
 
-2. Spawn validation Task agents (model: haiku)
+### Phase 4: Merge Translated Sections
 
-3. Aggregate results and generate report
+If split, merge translated sections:
+
+```bash
+cat $WORK_DIR/translated/section_*.md > $WORK_DIR/translated.md
+```
+
+### Phase 5: Generate PDF
+
+```bash
+$PYTHON scripts/generate_pdf.py \
+  --markdown "$WORK_DIR/translated.md" \
+  --output "$OUTPUT_DIR/{filename}_translated.pdf"
+```
+
+### Phase 6: Validation (Optional)
+
+Review output for:
+- Markdown formatting preserved
+- Tables rendered correctly
+- Images referenced properly
+- No untranslated text
 
 ---
 
@@ -194,17 +201,13 @@ PYTHON=".venv/bin/python"
 ### Default (no flags)
 | Task | Model |
 |------|-------|
-| Text translation | Sonnet |
-| Table translation | Sonnet |
-| Metadata/TOC | Haiku |
+| Markdown translation | Sonnet |
 | Validation | Haiku |
 
 ### With `--high-quality`
 | Task | Model |
 |------|-------|
-| Text translation | Opus |
-| Table translation | Opus |
-| Metadata/TOC | Sonnet |
+| Markdown translation | Opus |
 | Validation | Sonnet |
 
 ---
@@ -305,33 +308,22 @@ Use the `--dict` option with a JSON file:
 
 ```
 $WORK_DIR/
-├── manifest.json           # Task manifest
-├── extracted/              # Extracted text blocks by page
-│   ├── page_001.json
-│   ├── page_002.json
-│   └── ...
-├── tables/                 # Extracted tables
-│   ├── table_001.json
-│   └── ...
+├── source.md               # Original Markdown (extracted from PDF)
+├── metadata.json           # Document metadata (title, pages, languages)
 ├── images/                 # Extracted images
-├── translated/             # Translated content
-│   ├── page_001.json
-│   ├── table_001.json
+│   ├── page001_img000.png
+│   ├── page002_img000.png
 │   └── ...
-├── validation/             # Validation files
-├── status/                 # Task status files
-├── logs/                   # Log files
-└── output/                 # Final output files
+├── sections/               # Split sections (for large documents)
+│   ├── section_001.md
+│   ├── section_002.md
+│   └── sections_manifest.json
+├── translated/             # Translated sections
+│   ├── section_001.md
+│   ├── section_002.md
+│   └── ...
+└── translated.md           # Final merged translation
 ```
-
-## Status Codes
-
-| Status | Meaning |
-|--------|---------|
-| `pending` | Not started |
-| `in_progress` | Being translated |
-| `completed` | Done |
-| `failed` | Error occurred |
 
 ---
 
@@ -347,19 +339,42 @@ $WORK_DIR/
 
 ---
 
+## Text Processing
+
+The following automatic text cleanup is applied during extraction and output generation:
+
+| Issue | Fix Applied |
+|-------|-------------|
+| Corrupted characters (●) | Restored to parentheses |
+| Broken URLs (spaces) | Spaces removed, domains fixed |
+| Missing @ in emails | Restored based on pattern |
+| Artifact text (a1111111111) | Filtered out |
+| Small images (logos, icons) | Filtered (min 200x100) |
+
+### List Detection
+
+Automatically detects and formats various list styles:
+- Bullet: `•`, `·`, `-`, `*`, `▪`, `▸`, `►`
+- Numbered: `1.`, `1)`, `(1)`, `①`
+- Roman: `i.`, `ii.`, `iii.`
+- Letter: `a.`, `a)`, `(a)`
+
+---
+
 ## Output Formats
 
 ### Markdown Output
 - Preserves document structure (headings, paragraphs, lists)
 - Tables converted to Markdown tables
-- Images referenced with paths
-- Metadata at document header
+- URLs converted to clickable links
+- Metadata in YAML frontmatter
 
 ### PDF Output
-- Attempts to preserve original layout
-- Handles text direction changes (RTL→LTR, vertical→horizontal)
-- Maintains page structure where possible
-- Embedded fonts for target language
+- Generated via pandoc + weasyprint from Markdown
+- Clean text rendering with system fonts (Pretendard preferred)
+- Proper table rendering with borders and headers
+- Clickable links with styling
+- Page numbers at bottom
 
 ---
 
@@ -368,18 +383,14 @@ $WORK_DIR/
 | Path | Description |
 |------|-------------|
 | `SKILL.md` | This file |
-| `references/orchestrator.md` | Detailed orchestrator instructions |
-| `references/translator_*.md` | Language-specific translator prompts |
+| `references/orchestrator.md` | Orchestrator workflow guide |
+| `references/translator_markdown.md` | Markdown translation guidelines |
 | `references/translator_academic.md` | Academic document translation |
-| `references/table_handler.md` | Table translation instructions |
-| `references/metadata_handler.md` | Metadata/TOC translation |
 | `references/validator_generic.md` | Generic validation instruction |
 | `references/validator_ko.md` | Korean-specific validation |
-| `scripts/setup_env.sh` | Environment setup (auto-detects uv or pip) |
-| `scripts/analyze_pdf.py` | PDF analysis, layout detection, table extraction, manifest generation |
-| `scripts/merge_to_markdown.py` | Markdown output generation |
-| `scripts/generate_pdf.py` | PDF output generation |
-| `scripts/verify.py` | Translation verification |
-| `scripts/extract_for_validation.py` | Token-efficient text extraction for LLM validation |
+| `scripts/setup_env.sh` | Environment setup (installs pandoc, Python dependencies) |
+| `scripts/extract_to_markdown.py` | PDF extraction to Markdown with images |
+| `scripts/split_markdown.py` | Split large Markdown into sections by token count |
+| `scripts/generate_pdf.py` | PDF output generation (Markdown → PDF via pandoc + weasyprint) |
 | `assets/template.json` | Dictionary template for general documents |
 | `assets/template_academic.json` | Dictionary template for academic documents |
