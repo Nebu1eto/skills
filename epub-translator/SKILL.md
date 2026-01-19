@@ -2,6 +2,7 @@
 name: epub-translator
 description: Translates EPUB ebook files between languages with parallel processing. Supports Japanese, English, Chinese, and other languages. Handles large files by splitting into sections, manages multiple volumes simultaneously, and preserves EPUB structure and formatting. Includes translation quality validation. Use when translating novels, books, or any EPUB content.
 compatibility: Requires Python 3.8+, zip/unzip commands. Optional epubcheck for validation.
+allowed-tools: Read Write Edit Bash(python3:*) Bash(bash:*) Bash(mkdir:*) Bash(find:*) Bash(echo:*) Bash(wc:*) Bash(cat:*) Bash(ls:*)
 metadata:
   author: Haze Lee
   version: "1.0.0"
@@ -72,7 +73,7 @@ Use this skill when:
 
 ```mermaid
 graph TB
-    O["ORCHESTRATOR<br/>• Analyzes EPUBs and creates task manifest<br/>• Spawns parallel translator agents<br/>• Monitors progress via status files<br/>• Validates translation quality<br/>• Handles retries and error recovery"]
+    O["ORCHESTRATOR<br/>• Analyzes EPUBs and creates task manifest<br/>• Spawns parallel translator agents (foreground)<br/>• Collects results directly from agent responses<br/>• Validates translation quality<br/>• Handles retries and error recovery"]
     T1["Translator<br/>Agent 1"]
     T2["Translator<br/>Agent 2"]
     TN["Translator<br/>Agent N"]
@@ -83,6 +84,8 @@ graph TB
 ```
 
 **Key Constraint**: Sub-agents do NOT have Task tool access. They use only Read, Edit, Write, and Bash.
+
+**Execution Model**: All Task agents run in **foreground mode** (not background). Multiple Tasks can be spawned in a single message for parallel execution, but results are collected synchronously.
 
 ---
 
@@ -138,14 +141,19 @@ graph TB
    - English: `translator_en.md`
    - Other: `translator_generic.md`
 
-2. Spawn Task agents with:
-   - `run_in_background: true`
+2. Spawn Task agents in **foreground mode** (batched):
    - `model: "sonnet"`
-   - **CRITICAL**: Multiple Tasks in single message for true parallelism
+   - **CRITICAL**: Multiple Tasks in single message for parallel execution
+   - Process in batches of `--parallel` count (default: 5)
+   - Results are returned directly - no status file monitoring needed
 
-3. Monitor progress:
-   ```bash
-   find "$WORK_DIR/status" -name "*.status" -exec grep -l "completed" {} \; | wc -l
+3. Batch execution pattern:
+   ```
+   For each batch of N tasks:
+     - Spawn N Task agents in a single message (foreground, parallel)
+     - Collect results directly from agent responses
+     - Track completed/failed tasks
+     - Proceed to next batch
    ```
 
 4. Retry failed tasks (max 2 attempts, upgrade to `opus` if persistent)
@@ -184,24 +192,19 @@ graph TB
    - Korean target: `validator_ko.md` (extends `validator_generic.md`)
    - Other targets: `validator_generic.md`
 
-3. Spawn validation Task agents:
+3. Spawn validation Task agents in **foreground mode** (batched):
    - Read `$WORK_DIR/validation/validation_manifest.json`
    - For each chunk, spawn a validator agent with:
-     - `run_in_background: true`
      - `model: "haiku"` (sufficient for validation)
-   - **CRITICAL**: Multiple Tasks in single message for parallelism
+   - **CRITICAL**: Multiple Tasks in single message for parallel execution
+   - Process in batches, collect results directly
 
-4. Monitor validation progress:
-   ```bash
-   find "$WORK_DIR/validation" -name "*.status" -exec grep -l "completed" {} \; | wc -l
-   ```
-
-5. Aggregate results:
-   - Collect all `*_result.json` files
+4. Aggregate results:
+   - Collect validation results from agent responses
    - Calculate average quality score
    - Identify files flagged for re-translation
 
-6. **If average score < 70**: Re-translate flagged files with `model: "opus"`
+5. **If average score < 70**: Re-translate flagged files with `model: "opus"`
 
 ### Phase 5: Packaging
 
@@ -260,8 +263,9 @@ Translation quality is validated by LLM sub-agents, not regex patterns. This pro
 ### Validation Workflow
 1. Text extracted in token-efficient format
 2. Chunked for parallel validation (8000 tokens each)
-3. LLM validators assess each chunk
-4. Results aggregated into final report
+3. LLM validators spawned in foreground batches
+4. Results collected directly from agent responses
+5. Results aggregated into final report
 
 ---
 
