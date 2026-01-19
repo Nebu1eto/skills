@@ -29,6 +29,14 @@ bash scripts/setup_env.sh
 | `--high-quality` | Opus 모델 사용 | `false` |
 | `--dict` | 사용자 정의 사전 JSON | - |
 
+## 주요 기능
+
+- 테이블 텍스트 공백 처리 (x_tolerance)
+- 역전된 텍스트 감지 및 수정
+- 붙어있는 단어 분리 (wordninja)
+- 구두점 뒤 자동 공백 추가
+- 번역 시 복합 용어 오류 보정
+
 ## 아키텍처
 
 ```

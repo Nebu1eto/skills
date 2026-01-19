@@ -49,7 +49,14 @@ You will receive a Markdown section. The section may include:
 - Variable names or identifiers
 - Reference numbers like `[1]`, `[2]`
 
-### 3. Translate EVERYTHING Else
+### 3. Output Format
+
+**CRITICAL**: When writing the translated content to a file:
+- Do NOT include line numbers in the output
+- Write only the translated Markdown content
+- The Read tool shows line numbers for reference, but they must NOT appear in your output file
+
+### 4. Translate EVERYTHING Else
 
 - Headings content
 - Paragraph text
@@ -57,6 +64,29 @@ You will receive a Markdown section. The section may include:
 - Table cell content
 - Link display text
 - Image alt text
+
+---
+
+## PDF Extraction Error Handling
+
+**IMPORTANT**: Source text extracted from PDFs may contain artifacts. Correct these errors during translation:
+
+### Common PDF Extraction Errors
+
+1. **Split words**: Single words incorrectly split into fragments
+   - `Diaphragm a tic` → `Diaphragmatic`
+   - `broncho alveolar` → `bronchoalveolar`
+   - `neuro transmitter` → `neurotransmitter`
+
+2. **Concatenated words**: Words joined without spaces
+   - `thepatient` → `the patient`
+   - `ischaracterized` → `is characterized`
+
+### How to Handle
+
+- When you see short fragments (especially single letters) between word parts, reconstruct the original word
+- Use context and domain knowledge to determine correct word boundaries
+- Translate the corrected text, not the erroneous extraction
 
 ---
 

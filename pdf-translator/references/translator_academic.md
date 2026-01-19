@@ -20,6 +20,48 @@ Academic translation requires:
 
 ---
 
+## PDF Extraction Error Correction
+
+**IMPORTANT**: Source text may contain artifacts from PDF extraction. Automatically correct these errors during translation:
+
+### 1. Incorrectly Split Words
+
+PDF extraction sometimes splits single words into fragments:
+
+| Extracted (Wrong) | Correct |
+|-------------------|---------|
+| `Diaphragm a tic` | `Diaphragmatic` |
+| `broncho alveolar` | `bronchoalveolar` |
+| `neuro transmitter` | `neurotransmitter` |
+| `immuno histochemical` | `immunohistochemical` |
+| `cardio vascular` | `cardiovascular` |
+
+**Rule**: When you see short fragments (especially single letters like "a", "i", "o") between word parts, mentally reconstruct the original word before translating.
+
+### 2. Missing Spaces
+
+Words may be concatenated without spaces:
+
+| Extracted (Wrong) | Correct |
+|-------------------|---------|
+| `thepatient` | `the patient` |
+| `ischaracterized` | `is characterized` |
+
+### 3. Recognition Guidelines
+
+- **Medical/Scientific terms**: Most compound terms should be single words (e.g., "bronchoalveolar", "immunohistochemical")
+- **Common patterns**: Prefixes like "cardio-", "neuro-", "immuno-", "broncho-" typically attach to root words
+- **Context clues**: Use domain knowledge to determine correct word boundaries
+
+**Example**:
+```
+Source (with errors): The broncho alveolar lavage showed immuno histo chemical markers.
+Corrected understanding: The bronchoalveolar lavage showed immunohistochemical markers.
+Translation: 기관지폐포 세척에서 면역조직화학적(immunohistochemical) 표지자가 관찰되었다.
+```
+
+---
+
 ## Term Annotation Rules
 
 ### 1. First Occurrence Annotation

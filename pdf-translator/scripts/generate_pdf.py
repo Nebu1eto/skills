@@ -127,6 +127,19 @@ pre code {
     padding: 0;
 }
 
+del, s {
+    text-decoration: line-through;
+    color: #999;
+}
+
+strong {
+    font-weight: 600;
+}
+
+em {
+    font-style: italic;
+}
+
 img {
     max-width: 100%;
     height: auto;
@@ -157,8 +170,9 @@ def check_pandoc():
 
 def markdown_to_html(markdown_path: str) -> str:
     """Convert Markdown to HTML using pandoc."""
+    # Use markdown+strikeout to support ~~strikethrough~~ syntax
     result = subprocess.run(
-        ['pandoc', markdown_path, '-f', 'markdown', '-t', 'html5'],
+        ['pandoc', markdown_path, '-f', 'markdown+strikeout', '-t', 'html5'],
         capture_output=True,
         text=True
     )

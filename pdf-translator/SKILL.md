@@ -350,6 +350,45 @@ The following automatic text cleanup is applied during extraction and output gen
 | Missing @ in emails | Restored based on pattern |
 | Artifact text (a1111111111) | Filtered out |
 | Small images (logos, icons) | Filtered (min 200x100) |
+| Page headers/footers | Auto-detected and removed |
+| Superscript numbers | Converted to `^[n]` format |
+| Reference section | Auto-formatted with merged entries |
+| Concatenated words | Split using wordninja (`thepatient` → `the patient`) |
+| Reversed text | Detected and corrected (`rewol` → `lower`) |
+| Missing punctuation spaces | Added (`text.Next` → `text. Next`) |
+| Table text spacing | Improved with x_tolerance parameter |
+
+### PDF Extraction Error Correction
+
+Some complex PDF artifacts cannot be fully corrected during extraction. The translator prompts include instructions to recognize and correct remaining errors:
+- Split medical/scientific terms: `broncho alveolar` → `bronchoalveolar`
+- Single-letter fragments: `Diaphragm a tic` → `Diaphragmatic`
+
+See `references/translator_markdown.md` and `references/translator_academic.md` for details.
+
+### Header/Footer Detection
+
+Automatically detects and removes common header/footer patterns:
+- DOI links (`https://doi.org/...`)
+- Journal volume/issue patterns (`Journal| (2024) 16:642`)
+- Page numbers (standalone numbers at page boundaries)
+- Date stamps (`Received: 23 July 2024`)
+- Copyright notices
+
+### Superscript Handling
+
+Reference numbers and author affiliations are detected by font size and converted to standard format:
+- `word¹` → `word^[1]`
+- `Author¹,²` → `Author^[1,2]`
+
+### Reference Section Processing
+
+Multi-language support for reference section headers:
+- English: References, Bibliography, Works Cited
+- Korean: 참고문헌
+- German: Literatur, Literaturverzeichnis
+- French: Références, Bibliographie
+- Chinese/Japanese: 参考文献
 
 ### List Detection
 
@@ -394,3 +433,26 @@ Automatically detects and formats various list styles:
 | `scripts/generate_pdf.py` | PDF output generation (Markdown → PDF via pandoc + weasyprint) |
 | `assets/template.json` | Dictionary template for general documents |
 | `assets/template_academic.json` | Dictionary template for academic documents |
+
+---
+
+## Known Limitations
+
+PDF extraction has inherent limitations due to the format's nature:
+
+| Limitation | Description | Workaround |
+|------------|-------------|------------|
+| Figure text extraction | Text inside charts/graphs/diagrams may be extracted as body text | Manual review of figure areas |
+| Complex table structures | Tables with merged cells or nested structures may not parse correctly | Tables extracted as best-effort Markdown |
+| Multi-column layouts | Two-column academic papers may have text order issues | Usually handled correctly, but verify flow |
+| Scanned PDFs | Image-based PDFs require OCR (not included) | Use OCR tools first, then translate |
+| Mathematical formulas | LaTeX/MathML may not render perfectly | Formulas preserved as-is when possible |
+
+### Quality Expectations
+
+- **Academic papers**: 85-95% accuracy on text extraction
+- **Technical manuals**: 80-90% accuracy
+- **Complex layouts**: 70-85% accuracy (flowcharts, multi-column)
+- **Tables**: Variable (depends on structure complexity)
+
+For best results with complex documents, review the extracted `source.md` before translation and manually correct any extraction errors.

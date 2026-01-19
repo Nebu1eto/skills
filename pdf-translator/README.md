@@ -29,6 +29,14 @@ bash scripts/setup_env.sh
 | `--high-quality` | Use Opus model | `false` |
 | `--dict` | Custom dictionary JSON | - |
 
+## Features
+
+- Table text spacing with x_tolerance parameter
+- Reversed text detection and correction
+- Concatenated word splitting (wordninja)
+- Automatic punctuation spacing
+- Complex term correction during translation
+
 ## Architecture
 
 ```
