@@ -41,6 +41,7 @@ Use this skill when:
 | `--split-threshold` | File size for splitting (KB) | `30` |
 | `--split-parts` | Parts to split large files | `4` |
 | `--high-quality` | Use Opus model for translation | `false` |
+| `--vertical` | Output vertical writing (ja/zh only) | `false` |
 
 ### Language Codes
 `ja` (Japanese), `en` (English), `ko` (Korean), `zh` (Chinese), `es` (Spanish), `fr` (French), `de` (German), `ru` (Russian), `ar` (Arabic), or any ISO 639-1 code.
@@ -65,6 +66,12 @@ Use this skill when:
 
 # More aggressive splitting for slower connections
 /epub-translator "/books/large.epub" --split-threshold 20 --split-parts 6
+
+# English to Japanese with vertical writing (우종서/縦書き)
+/epub-translator "/books/novel.epub" --source-lang en --target-lang ja --vertical
+
+# Korean to Chinese with vertical writing
+/epub-translator "/books/korean.epub" --source-lang ko --target-lang zh --vertical
 ```
 
 ---
@@ -171,7 +178,77 @@ graph TB
    - Translate: cover.xhtml, titlepage.xhtml (if present)
    - Ensure TOC entries match translated chapter headings
 
-3. Apply technical adjustments (stylesheet.css, page direction)
+3. **Apply layout conversion** (CRITICAL - must be done before packaging):
+
+   Determine conversion type based on target language and `--vertical` option:
+
+   | Target Language | `--vertical` | Result |
+   |-----------------|--------------|--------|
+   | ko, en, etc. | (ignored) | horizontal-tb, ltr |
+   | ja, zh | false (default) | horizontal-tb, ltr |
+   | ja, zh | true | vertical-rl, rtl (우종서/縦書き) |
+   | ar, he, fa | (ignored) | horizontal-tb, rtl |
+
+   **A. Horizontal output (default for all languages):**
+   ```bash
+   TRANSLATED_DIR="$WORK_DIR/translated/{VOLUME_ID}"
+
+   # Convert CSS files: vertical-rl → horizontal-tb
+   find "$TRANSLATED_DIR" -name "*.css" -exec sed -i '' \
+       -e 's/writing-mode:[[:space:]]*vertical-rl/writing-mode: horizontal-tb/g' \
+       -e 's/-webkit-writing-mode:[[:space:]]*vertical-rl/-webkit-writing-mode: horizontal-tb/g' \
+       -e 's/-epub-writing-mode:[[:space:]]*vertical-rl/-epub-writing-mode: horizontal-tb/g' \
+       {} \;
+
+   # Convert content.opf: page direction and writing mode
+   find "$TRANSLATED_DIR" -name "content.opf" -exec sed -i '' \
+       -e 's/page-progression-direction="rtl"/page-progression-direction="ltr"/g' \
+       -e 's/primary-writing-mode" content="vertical-rl"/primary-writing-mode" content="horizontal-tb"/g' \
+       {} \;
+
+   # Convert XHTML inline styles if present
+   find "$TRANSLATED_DIR" -name "*.xhtml" -exec sed -i '' \
+       -e 's/writing-mode:[[:space:]]*vertical-rl/writing-mode: horizontal-tb/g' \
+       {} \;
+   ```
+
+   **B. Vertical output (only when `--vertical` AND target is ja/zh):**
+   ```bash
+   TRANSLATED_DIR="$WORK_DIR/translated/{VOLUME_ID}"
+
+   # Convert CSS files: horizontal-tb → vertical-rl
+   find "$TRANSLATED_DIR" -name "*.css" -exec sed -i '' \
+       -e 's/writing-mode:[[:space:]]*horizontal-tb/writing-mode: vertical-rl/g' \
+       -e 's/-webkit-writing-mode:[[:space:]]*horizontal-tb/-webkit-writing-mode: vertical-rl/g' \
+       -e 's/-epub-writing-mode:[[:space:]]*horizontal-tb/-epub-writing-mode: vertical-rl/g' \
+       {} \;
+
+   # Convert content.opf: page direction and writing mode for vertical
+   find "$TRANSLATED_DIR" -name "content.opf" -exec sed -i '' \
+       -e 's/page-progression-direction="ltr"/page-progression-direction="rtl"/g' \
+       -e 's/primary-writing-mode" content="horizontal-tb"/primary-writing-mode" content="vertical-rl"/g' \
+       {} \;
+
+   # Convert XHTML inline styles if present
+   find "$TRANSLATED_DIR" -name "*.xhtml" -exec sed -i '' \
+       -e 's/writing-mode:[[:space:]]*horizontal-tb/writing-mode: vertical-rl/g' \
+       {} \;
+   ```
+
+   **C. RTL output (for ar/he/fa targets):**
+   ```bash
+   # Convert page direction
+   sed -i '' 's/page-progression-direction="ltr"/page-progression-direction="rtl"/g' "$TRANSLATED_DIR"/content.opf
+
+   # Convert CSS direction
+   find "$TRANSLATED_DIR" -name "*.css" -exec sed -i '' \
+       -e 's/direction:[[:space:]]*ltr/direction: rtl/g' \
+       {} \;
+   ```
+
+   **Note**: If source is already vertical and `--vertical` is set, skip CSS conversion (keep existing vertical layout).
+
+   See `references/layout_conversion.md` for complete conversion patterns.
 
 4. Verify source text removed:
    ```bash
@@ -289,11 +366,13 @@ Translation quality is validated by LLM sub-agents, not regex patterns. This pro
 | Korean (ko) | ltr | horizontal-tb | ltr | |
 | English (en) | ltr | horizontal-tb | ltr | |
 | Japanese (ja) | ltr | horizontal-tb | ltr | Default |
+| Japanese (ja) + `--vertical` | rtl | vertical-rl | ltr | 縦書き (우종서) |
 | Chinese (zh) | ltr | horizontal-tb | ltr | Default |
+| Chinese (zh) + `--vertical` | rtl | vertical-rl | ltr | 縱排 (우종서) |
 | Arabic (ar) | rtl | horizontal-tb | rtl | |
 | Hebrew (he) | rtl | horizontal-tb | rtl | |
 
-**Note**: Japanese/Chinese vertical writing requires explicit `--vertical` flag.
+**Note**: `--vertical` option is only valid for Japanese (ja) and Chinese (zh) targets. It will be ignored for other languages.
 
 See `references/layout_conversion.md` for complete conversion scripts.
 
