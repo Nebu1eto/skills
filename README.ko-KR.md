@@ -7,3 +7,4 @@
 
 - [`epub-translator`](./epub-translator/README.ko-KR.md)
 - [`pdf-translator`](./pdf-translator/README.ko-KR.md)
+- [`writing-tropes`](./writing-tropes/README.ko-KR.md)
