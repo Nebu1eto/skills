@@ -26,7 +26,7 @@ bash scripts/setup_env.sh
 | `--target-lang` | 대상 언어 | `ko` |
 | `--output-format` | markdown / pdf / both | `both` |
 | `--academic` | 원문 용어 병기 | `false` |
-| `--high-quality` | Opus 모델 사용 | `false` |
+| `--high-quality` | 런타임의 더 강한 모델 선호 | `false` |
 | `--dict` | 사용자 정의 사전 JSON | - |
 
 ## 주요 기능
@@ -42,4 +42,3 @@ bash scripts/setup_env.sh
 ```
 PDF → extract_to_markdown.py → source.md → 분할 (대용량) → 번역 → generate_pdf.py → 출력
 ```
-

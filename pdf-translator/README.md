@@ -26,7 +26,7 @@ bash scripts/setup_env.sh
 | `--target-lang` | Target language | `ko` |
 | `--output-format` | markdown / pdf / both | `both` |
 | `--academic` | Include original terms | `false` |
-| `--high-quality` | Use Opus model | `false` |
+| `--high-quality` | Prefer the runtime's stronger model | `false` |
 | `--dict` | Custom dictionary JSON | - |
 
 ## Features
@@ -42,4 +42,3 @@ bash scripts/setup_env.sh
 ```
 PDF → extract_to_markdown.py → source.md → split (if large) → translate → generate_pdf.py → output
 ```
-

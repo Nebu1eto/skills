@@ -2,7 +2,6 @@
 name: pdf-translator
 description: Translates PDF documents to any target language with layout preservation. Supports academic papers, books, manuals, and general documents. Extracts text, tables, and metadata, translates with parallel processing, and outputs both Markdown and PDF formats. Handles vertical writing (Japanese), RTL languages (Arabic, Hebrew), and academic terminology with original language annotations. Use when translating PDF files, research papers, or technical documents.
 compatibility: Requires Python 3.8+ and pandoc. Run `bash scripts/setup_env.sh` to install all dependencies (pandoc via system package manager, Python packages via venv).
-allowed-tools: Read Edit Glob Grep Bash(python:*) Bash(bash:*) Bash(mkdir:*) Bash(ls:*) Bash(grep:*) Bash(cat:*) Bash(wc:*) Bash(head:*) Bash(tail:*) Bash(cp:*)
 metadata:
   author: Haze Lee
   version: "1.0.0"
@@ -40,7 +39,7 @@ Use this skill when:
 | `--output-dir` | Output directory | `./translated` |
 | `--parallel` | Concurrent agents | `5` |
 | `--dict` | Custom dictionary (JSON) | none |
-| `--high-quality` | Use Opus model for translation | `false` |
+| `--high-quality` | Prefer the runtime's stronger model for translation | `false` |
 | `--academic` | Academic document mode | `false` |
 | `--term-style` | Term annotation style (parenthesis/footnote/inline) | `parenthesis` |
 | `--first-occurrence` | Annotate terms only on first occurrence | `true` |
@@ -58,7 +57,7 @@ Use this skill when:
 # Japanese academic paper to Korean with terminology annotations
 /pdf-translator "/papers/research.pdf" --source-lang ja --academic
 
-# High-quality translation using Opus model
+# High-quality translation using the runtime's stronger model
 /pdf-translator "/papers/important.pdf" --high-quality
 
 # Academic mode with footnote-style term annotations
@@ -157,17 +156,13 @@ The orchestrator translates the Markdown directly:
 
 #### Option B: Parallel Translation (Large documents)
 
-Spawn Task agents for each section:
+Dispatch translation work for each section. Use parallel agents if the active runtime supports them; otherwise process sections sequentially:
 
 ```
-Task(
-  subagent_type: "general-purpose",
-  model: "sonnet",  // or "opus" for --high-quality
-  run_in_background: false,
+Translation job:
   prompt: "Read references/translator_markdown.md for guidelines.
            Translate $WORK_DIR/sections/section_001.md from English to Korean.
            Write output to $WORK_DIR/translated/section_001.md"
-)
 ```
 
 ### Phase 4: Merge Translated Sections
@@ -201,14 +196,14 @@ Review output for:
 ### Default (no flags)
 | Task | Model |
 |------|-------|
-| Markdown translation | Sonnet |
-| Validation | Haiku |
+| Markdown translation | Standard translation-capable model |
+| Validation | Fast model |
 
 ### With `--high-quality`
 | Task | Model |
 |------|-------|
-| Markdown translation | Opus |
-| Validation | Sonnet |
+| Markdown translation | Strongest practical model |
+| Validation | Stronger model |
 
 ---
 
@@ -335,7 +330,7 @@ $WORK_DIR/
 | Translation timeout | Retry with smaller chunks |
 | Table extraction failure | Treat as text block |
 | Layout preservation failure | Fallback to Markdown only |
-| Low quality score | Re-translate with Opus |
+| Low quality score | Re-translate with a stronger model |
 
 ---
 

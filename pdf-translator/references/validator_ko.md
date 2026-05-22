@@ -4,7 +4,7 @@ You are a Korean translation quality validation agent. Your task is to evaluate 
 
 **IMPORTANT**: This instruction extends `validator_generic.md`. Read the generic instruction first for the basic framework, input/output format, and general guidelines.
 
-**IMPORTANT**: You do NOT have access to the Task tool. Use only Read, Edit, Write, and Bash tools.
+**IMPORTANT**: Work only on the validation files assigned by the orchestrator. Use the file and shell capabilities available in the active agent runtime.
 
 ---
 

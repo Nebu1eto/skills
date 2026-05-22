@@ -54,7 +54,7 @@ You will receive a Markdown section. The section may include:
 **CRITICAL**: When writing the translated content to a file:
 - Do NOT include line numbers in the output
 - Write only the translated Markdown content
-- The Read tool shows line numbers for reference, but they must NOT appear in your output file
+- If your runtime displays line numbers while reading files, do not include those line numbers in the output
 
 ### 4. Translate EVERYTHING Else
 

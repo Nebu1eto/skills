@@ -104,20 +104,18 @@ Example output:
 }
 ```
 
-### Step 3: Spawn Translation Agents
+### Step 3: Dispatch Translation Jobs
 
 Create a `translated/` directory:
 ```bash
 mkdir -p $WORK_DIR/translated
 ```
 
-Spawn parallel Task agents for each section:
+Dispatch one translation job for each section. Use parallel agents if the active runtime supports them; otherwise process the sections sequentially:
 
 ```
-Task(
-  subagent_type: "general-purpose",
-  model: "sonnet",  // Use "opus" for --high-quality
-  run_in_background: false,
+Translation job:
+  model: standard translation-capable model, or strongest practical model for --high-quality
   prompt: "You are a Markdown translation agent.
 
 Read the translation guidelines at:
@@ -137,10 +135,9 @@ Additional instructions:
 If a custom dictionary is provided, apply it:
 {DICT_PATH or 'None'}
 "
-)
 ```
 
-**Parallel Execution:** Launch all section translation tasks simultaneously for efficiency.
+**Parallel Execution:** Launch section translation jobs simultaneously when supported for efficiency. Each job must write its assigned output file under `$WORK_DIR/translated/`.
 
 ### Step 4: Wait for Completion
 
@@ -213,14 +210,14 @@ Use `references/validator_generic.md` or `references/validator_ko.md` for langua
 ### Default
 | Task | Model |
 |------|-------|
-| Section translation | Sonnet |
-| Validation | Haiku |
+| Section translation | Standard translation-capable model |
+| Validation | Fast model |
 
 ### With --high-quality
 | Task | Model |
 |------|-------|
-| Section translation | Opus |
-| Validation | Sonnet |
+| Section translation | Strongest practical model |
+| Validation | Stronger model |
 
 ---
 
