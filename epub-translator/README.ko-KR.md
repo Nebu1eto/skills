@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-EPUB 파일을 번역하는 Claude Code 스킬.
+EPUB 파일을 번역하는 Agent Skill.
 
 ## 특징
 
@@ -16,12 +16,7 @@ EPUB 파일을 번역하는 Claude Code 스킬.
 
 **요구사항**: Python 3.8+, `zip`, `unzip`
 
-```json
-// ~/.claude/settings.json
-{
-  "skills": ["/path/to/epub-translator"]
-}
-```
+이 디렉토리를 사용하는 에이전트 런타임의 Agent Skills 경로에 설치하세요. Claude Code에서는 `~/.claude/settings.json`에 스킬 경로를 추가하고, Codex에서는 설정된 skills 디렉토리에 배치합니다.
 
 ## 사용법
 
@@ -38,7 +33,7 @@ EPUB 파일을 번역하는 Claude Code 스킬.
 # 10개 에이전트로 일괄 번역
 /epub-translator "/books/" --parallel 10
 
-# Opus 모델로 고품질 번역
+# 런타임의 더 강한 모델로 고품질 번역
 /epub-translator "novel.epub" --high-quality
 ```
 
@@ -51,7 +46,7 @@ EPUB 파일을 번역하는 Claude Code 스킬.
 | `--parallel` | 동시 에이전트 수 | `5` |
 | `--split-threshold` | 분할 임계값 (KB) | `30` |
 | `--split-parts` | 분할 개수 | `4` |
-| `--high-quality` | Opus 모델 사용 | `false` |
+| `--high-quality` | 런타임의 더 강한 번역 모델 선호 | `false` |
 | `--vertical` | 세로쓰기 (ja/zh만) | `false` |
 | `--dict` | 커스텀 사전 (JSON) | 없음 |
 | `--output-dir` | 출력 디렉토리 | `./translated` |
@@ -93,7 +88,7 @@ EPUB 파일을 번역하는 Claude Code 스킬.
 ## 워크플로우
 
 1. **분석**: EPUB 추출, 대용량 파일 분할
-2. **번역**: 서브에이전트로 병렬 번역
+2. **번역**: 사용 가능한 에이전트 또는 분할 단위로 병렬 번역
 3. **메타데이터**: 목차, 제목, 저자 번역
 4. **레이아웃**: 쓰기 방향 변환
 5. **검증**: 품질 검사

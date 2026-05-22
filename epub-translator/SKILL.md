@@ -2,7 +2,6 @@
 name: epub-translator
 description: Translates EPUB ebook files between languages with parallel processing. Supports Japanese, English, Chinese, and other languages. Handles large files by splitting into sections, manages multiple volumes simultaneously, and preserves EPUB structure and formatting. Includes translation quality validation. Use when translating novels, books, or any EPUB content.
 compatibility: Requires Python 3.8+, zip/unzip commands. Optional epubcheck for validation.
-allowed-tools: Read Write Edit Bash(python3:*) Bash(bash:*) Bash(mkdir:*) Bash(find:*) Bash(echo:*) Bash(wc:*) Bash(cat:*) Bash(ls:*)
 metadata:
   author: Haze Lee
   version: "1.0.0"
@@ -40,7 +39,7 @@ Use this skill when:
 | `--parallel` | Concurrent agents | `5` |
 | `--split-threshold` | File size for splitting (KB) | `30` |
 | `--split-parts` | Parts to split large files | `4` |
-| `--high-quality` | Use Opus model for translation | `false` |
+| `--high-quality` | Prefer the runtime's stronger model for translation | `false` |
 | `--vertical` | Output vertical writing (ja/zh only) | `false` |
 
 ### Language Codes
@@ -58,7 +57,7 @@ Use this skill when:
 # Japanese to English
 /epub-translator "/books/jp_novel.epub" --source-lang ja --target-lang en
 
-# High-quality translation using Opus model
+# High-quality translation using the runtime's stronger model
 /epub-translator "/books/important.epub" --high-quality
 
 # Batch with larger split threshold (less splitting)
@@ -80,7 +79,7 @@ Use this skill when:
 
 ```mermaid
 graph TB
-    O["ORCHESTRATOR<br/>• Analyzes EPUBs and creates task manifest<br/>• Spawns parallel translator agents (foreground)<br/>• Collects results directly from agent responses<br/>• Validates translation quality<br/>• Handles retries and error recovery"]
+    O["ORCHESTRATOR<br/>• Analyzes EPUBs and creates task manifest<br/>• Dispatches translation work using available agent/runtime features<br/>• Collects translated section files<br/>• Validates translation quality<br/>• Handles retries and error recovery"]
     T1["Translator<br/>Agent 1"]
     T2["Translator<br/>Agent 2"]
     TN["Translator<br/>Agent N"]
@@ -90,9 +89,7 @@ graph TB
     O --> TN
 ```
 
-**Key Constraint**: Sub-agents do NOT have Task tool access. They use only Read, Edit, Write, and Bash.
-
-**Execution Model**: All Task agents run in **foreground mode** (not background). Multiple Tasks can be spawned in a single message for parallel execution, but results are collected synchronously.
+**Execution Model**: Translate independent files or sections in parallel when the active runtime supports parallel agents. If parallel dispatch is unavailable, process the manifest sequentially with the same prompts and filesystem outputs.
 
 ---
 
@@ -101,19 +98,19 @@ graph TB
 ### Default (no flags)
 | Task | Model |
 |------|-------|
-| Content translation | Sonnet |
-| Metadata/TOC | Haiku |
-| Validation | Haiku |
+| Content translation | Standard translation-capable model |
+| Metadata/TOC | Fast model |
+| Validation | Fast model |
 
 ### With `--high-quality`
 | Task | Model |
 |------|-------|
-| Content translation | Opus |
-| Metadata/TOC | Sonnet |
-| Validation | Sonnet |
+| Content translation | Strongest practical model |
+| Metadata/TOC | Stronger model |
+| Validation | Stronger model |
 
 ### Automatic Upgrade
-- If quality score < 70: Re-translate flagged files with Opus
+- If quality score < 70: Re-translate flagged files with a stronger model
 - If translation fails: Retry with upgraded model
 
 ---
@@ -148,22 +145,22 @@ graph TB
    - English: `translator_en.md`
    - Other: `translator_generic.md`
 
-2. Spawn Task agents in **foreground mode** (batched):
-   - `model: "sonnet"`
-   - **CRITICAL**: Multiple Tasks in single message for parallel execution
-   - Process in batches of `--parallel` count (default: 5)
-   - Results are returned directly - no status file monitoring needed
+2. Dispatch translation work in batches:
+   - Use parallel agents if the runtime supports them
+   - Otherwise translate each manifest entry sequentially
+   - Process in batches of `--parallel` count when parallelism is available
+   - Require each task to write its translated output file and status file
 
 3. Batch execution pattern:
    ```
    For each batch of N tasks:
-     - Spawn N Task agents in a single message (foreground, parallel)
-     - Collect results directly from agent responses
+     - Dispatch N translation jobs when parallelism is available
+     - Confirm each expected output file exists
      - Track completed/failed tasks
      - Proceed to next batch
    ```
 
-4. Retry failed tasks (max 2 attempts, upgrade to `opus` if persistent)
+4. Retry failed tasks (max 2 attempts, use a stronger model if persistent)
 
 ### Phase 3: Finalization
 
@@ -173,7 +170,7 @@ graph TB
    ```
 
 2. Translate metadata and navigation (LLM-based):
-   - Spawn metadata translation agent using `translator_metadata.md`
+   - Run a metadata translation pass using `translator_metadata.md`
    - Translate: toc.ncx, nav.xhtml, content.opf (title, author, description)
    - Translate: cover.xhtml, titlepage.xhtml (if present)
    - Ensure TOC entries match translated chapter headings
@@ -313,7 +310,7 @@ Conservative defaults prevent context overflow in translation agents:
 
 ## Quality Validation (LLM-Based)
 
-Translation quality is validated by LLM sub-agents, not regex patterns. This provides:
+Translation quality is validated by an LLM-based review pass, not regex patterns. This provides:
 - Context-aware naturalness assessment
 - Understanding of literary style and tone
 - Detection of subtle translation issues

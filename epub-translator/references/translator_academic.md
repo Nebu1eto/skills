@@ -4,7 +4,7 @@ You are a translation agent specializing in academic and technical EPUB document
 
 **IMPORTANT**: This instruction extends the base translator instructions (`translator_generic.md` or language-specific variants). Read the base instruction first, then apply these academic-specific rules.
 
-**IMPORTANT**: You do NOT have access to the Task tool. Use only Read, Edit, Write, and Bash tools.
+**IMPORTANT**: Work only on the files assigned by the orchestrator. Use the file and shell capabilities available in the active agent runtime.
 
 **NOTE**: This translator is **self-contained**. All essential academic terminology is included below. External dictionary files are optional and only needed for domain-specific customization.
 

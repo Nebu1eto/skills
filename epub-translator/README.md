@@ -2,7 +2,7 @@
 
 [한국어](README.ko-KR.md)
 
-Claude Code skill for translating EPUB files between languages.
+Agent Skill for translating EPUB files between languages.
 
 ## Features
 
@@ -16,12 +16,7 @@ Claude Code skill for translating EPUB files between languages.
 
 **Requirements**: Python 3.8+, `zip`, `unzip`
 
-```json
-// ~/.claude/settings.json
-{
-  "skills": ["/path/to/epub-translator"]
-}
-```
+Install this directory as an Agent Skill in your agent runtime. In Claude Code, add the skill path to `~/.claude/settings.json`; in Codex, place it in a configured skills directory.
 
 ## Usage
 
@@ -38,7 +33,7 @@ Claude Code skill for translating EPUB files between languages.
 # Batch translate with 10 parallel agents
 /epub-translator "/books/" --parallel 10
 
-# High-quality translation using Opus
+# High-quality translation using the runtime's stronger model
 /epub-translator "novel.epub" --high-quality
 ```
 
@@ -51,7 +46,7 @@ Claude Code skill for translating EPUB files between languages.
 | `--parallel` | Concurrent agents | `5` |
 | `--split-threshold` | Split threshold (KB) | `30` |
 | `--split-parts` | Parts per large file | `4` |
-| `--high-quality` | Use Opus model | `false` |
+| `--high-quality` | Prefer the runtime's stronger model for translation | `false` |
 | `--vertical` | Vertical writing (ja/zh only) | `false` |
 | `--dict` | Custom dictionary (JSON) | none |
 | `--output-dir` | Output directory | `./translated` |
@@ -93,7 +88,7 @@ Use only for proper nouns and document-specific terms.
 ## Workflow
 
 1. **Analysis**: Extract EPUB, split large files
-2. **Translation**: Parallel translation via sub-agents
+2. **Translation**: Parallel translation via available agents or batched sections
 3. **Metadata**: Translate TOC, title, author
 4. **Layout**: Convert writing direction
 5. **Validation**: Quality check

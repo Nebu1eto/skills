@@ -4,8 +4,8 @@ You are the Orchestrator for an EPUB translation project. You manage parallel tr
 
 ## Core Principles
 
-1. **Context Efficiency**: Each sub-agent processes only a single file/section
-2. **Maximum Parallelization**: Spawn as many Tasks simultaneously as possible
+1. **Context Efficiency**: Each translation job processes only a single file/section
+2. **Maximum Parallelization**: Run as many independent jobs simultaneously as the active runtime supports
 3. **State-Based Management**: Track progress via filesystem
 4. **Failure Recovery**: Selectively retry only failed tasks
 
@@ -70,12 +70,13 @@ Estimated batches: {B} ({P} parallel per batch)
 ### 2.1 Prepare Translator Prompt
 
 Select appropriate prompt based on source language:
-- Japanese: `{SKILL_DIR}/prompts/translator_ja.md`
-- English: `{SKILL_DIR}/prompts/translator_en.md`
+- Japanese: `{SKILL_DIR}/references/translator_ja.md`
+- English: `{SKILL_DIR}/references/translator_en.md`
+- Other languages: `{SKILL_DIR}/references/translator_generic.md`
 
 ### 2.2 Batch Execution Strategy
 
-**IMPORTANT**: Due to Task tool characteristics, multiple Tasks must be called in a single message for true parallel execution.
+Run independent translation jobs in parallel when the active runtime supports parallel agents. If it does not, process the same jobs sequentially and keep the same filesystem contract.
 
 ```
 Recommended batch sizes:
@@ -84,7 +85,7 @@ Recommended batch sizes:
 - Large sections (split): 8-10 concurrent
 ```
 
-### 2.3 Task Spawn Pattern
+### 2.3 Translation Job Prompt Pattern
 
 Generate prompt with following info for each task:
 
@@ -115,28 +116,24 @@ Select model based on `--high-quality` flag:
 
 | Task | Default | With `--high-quality` |
 |------|---------|----------------------|
-| Content translation | `sonnet` | `opus` |
-| Metadata/TOC | `haiku` | `sonnet` |
-| Validation | `haiku` | `sonnet` |
+| Content translation | Standard translation-capable model | Strongest practical model |
+| Metadata/TOC | Fast model | Stronger model |
+| Validation | Fast model | Stronger model |
 
-### 2.5 Task Call Example
+### 2.5 Job Dispatch Example
 
 ```
-Call multiple Tasks in single message:
+Dispatch one job per file or section. Use the active runtime's native agent/task mechanism when available:
 
-Task #1:
-  subagent_type: "general-purpose"
-  model: "sonnet"  # or "opus" if --high-quality
+Job #1:
+  model: standard translation-capable model
   prompt: [template above + task 1 info]
-  run_in_background: true
 
-Task #2:
-  subagent_type: "general-purpose"
-  model: "sonnet"  # or "opus" if --high-quality
+Job #2:
+  model: standard translation-capable model
   prompt: [template above + task 2 info]
-  run_in_background: true
 
-... Task #N
+... Job #N
 ```
 
 ### 2.6 Progress Monitoring
@@ -163,7 +160,7 @@ FAILED_TASKS=$(find "$WORK_DIR/status" -name "*.status" -exec grep -l "failed" {
 ```
 
 Retry failed tasks (max 2 attempts):
-- **Automatic model upgrade**: Use `model: "opus"` for retries
+- **Automatic model upgrade**: Use a stronger available model for retries
 - Notify user of persistent failures
 
 ---
@@ -184,12 +181,11 @@ python3 "{SKILL_DIR}/scripts/merge_xhtml.py" \
 
 **IMPORTANT**: Metadata and TOC require LLM translation, not just sed replacement.
 
-For each volume, spawn a metadata translation agent:
+For each volume, run a metadata translation job:
 
 ```
-Task:
-  subagent_type: "general-purpose"
-  model: "haiku"  # or "sonnet" if --high-quality
+Metadata translation job:
+  model: fast model, or stronger model if --high-quality
   prompt: |
     ## Metadata Translation Task
 
@@ -211,7 +207,6 @@ Task:
     - cover.xhtml / titlepage.xhtml: Cover page text (if exists)
 
     Ensure chapter titles match translated XHTML content.
-  run_in_background: true
 ```
 
 #### Post-Translation: Layout Conversion

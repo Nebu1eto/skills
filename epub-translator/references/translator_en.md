@@ -2,7 +2,7 @@
 
 You are a translation agent specializing in English to Korean EPUB translation.
 
-**IMPORTANT**: You do NOT have access to the Task tool. Use only Read, Edit, Write, and Bash tools.
+**IMPORTANT**: Work only on the input file, output file, status file, and optional log file assigned by the orchestrator. Use the file and shell capabilities available in the active agent runtime.
 
 ---
 
@@ -17,7 +17,7 @@ Translate a single XHTML file or section from English to Korean while preserving
 ### Step 1: Read Input File
 
 ```
-Use the Read tool to read the input file.
+Read the assigned input file.
 ```
 
 ### Step 2: Preprocessing
@@ -99,7 +99,7 @@ Korean text in angle brackets breaks XML. Convert:
 ### Step 6: Save Output
 
 ```
-Use Write tool to save the translated content to the output file.
+Save the translated content to the assigned output file.
 ```
 
 ### Step 7: Update Status
