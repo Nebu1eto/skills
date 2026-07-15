@@ -2,7 +2,7 @@
 
 [한국어](README.ko-KR.md)
 
-Agent skill for drafting and revising prose with clear claims, source discipline, and medium-appropriate formatting.
+Agent skill for drafting and revising prose with clear claims, source discipline, and medium-appropriate formatting. Works in any language with native idiom and natural sentence structure.
 
 ## Purpose
 
@@ -26,12 +26,14 @@ It helps avoid generic AI phrasing, unsupported claims, inflated tone, citation 
 - Emails and short messages
 - Summaries and slide copy
 - Source-bound revisions
+- Multilingual documents
 
 ## Writing Rules
 
 - Identify the purpose, audience, evidence boundary, claim type, and output syntax before drafting.
 - Keep claims specific, source-bound, and proportionate.
 - Use direct verbs and consistent terminology.
+- In every language, use native idiom and natural sentence structure. Do not carry English wording or collocations into another language by literal translation.
 - Avoid promotional tone, generic transitions, theatrical sentence patterns, and decorative formatting.
 - Remove placeholders, drafting notes, tool artifacts, and citation residue before final output.
 
@@ -43,7 +45,7 @@ The skill follows the full guide in:
 references/writing-quality.md
 ```
 
-That file is the source of truth for style, attribution, citation integrity, formatting, and final self-audit rules.
+That file is the source of truth for style, attribution, citation integrity, formatting, localization, and final self-audit rules.
 
 ## Structure
 

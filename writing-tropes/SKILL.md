@@ -1,11 +1,13 @@
 ---
 name: writing-tropes
-description: Writing and editing quality guardrail for drafting, rewriting, summarizing, documenting, reporting, emailing, review comments, README/docs prose, tickets, slide copy, and other prose artifacts. Use when the coding agent writes or revises user-facing or repository documentation, especially to follow the full writing-quality guide for avoiding generic AI phrasing, unsupported claims, promotional tone, citation misuse, drafting residue, and format-inappropriate markup.
+description: Apply the repository writing-quality guide to user-facing prose and persisted documents. Use for drafting or revising reports, documentation, tickets, messages, review comments, and presentation copy.
 ---
 
-# Writing Tropes
+# Writing Quality
 
-Use this skill whenever producing or editing prose. Apply it silently unless the user asks for a style audit or reasoning.
+Use this skill whenever producing or editing prose. Do not insert the skill's
+checklist or internal drafting notes into the artifact. Follow the active runtime's
+requirements for announcing skill use.
 
 ## Required Reference
 
@@ -19,6 +21,9 @@ Do not treat that file as optional or as background reading. It is the source of
 
 - First identify the artifact purpose, audience, evidence boundary, claim type, and output syntax.
 - Keep claims source-bound and proportionate.
+- In every language, use native idiom and natural sentence structure. Do not carry
+  English wording, abstractions, or collocations into another language by literal
+  translation.
 - Avoid generic AI phrasing, unsupported synthesis, inflated significance, promotional tone, citation residue, drafting residue, and platform-inappropriate markup.
 - Match the target medium instead of defaulting to Markdown or a template structure.
 - Run the guide's final self-audit before returning or saving the artifact.
