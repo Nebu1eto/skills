@@ -1,0 +1,4 @@
+interface:
+  display_name: "Effective Writing"
+  short_description: "Layered prose editing guardrails by language and domain"
+  default_prompt: "Use $effective-writing to draft or revise this prose with concrete claims and source discipline."

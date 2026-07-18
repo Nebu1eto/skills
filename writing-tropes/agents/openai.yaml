@@ -1,4 +1,0 @@
-interface:
-  display_name: "Writing Tropes"
-  short_description: "Source-bound prose editing guardrails"
-  default_prompt: "Use $writing-tropes to draft or revise this prose with concrete claims and source discipline."

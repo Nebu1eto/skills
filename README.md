@@ -9,4 +9,4 @@ A collection of [Agent Skills](https://agentskills.io/) I created for my own nee
 
 - [`epub-translator`](./epub-translator/README.md)
 - [`pdf-translator`](./pdf-translator/README.md)
-- [`writing-tropes`](./writing-tropes/README.md)
+- [`effective-writing`](./effective-writing/README.md)
